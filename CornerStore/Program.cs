@@ -191,18 +191,21 @@ app.MapGet("/api/orders/{id}", (CornerStoreDbContext db, int id) =>
     }
 });
 
-// Orders #2 - Get all Orders
+// Orders #2 - Get all Orders and filter by orderDate (optional)
 app.MapGet("/api/orders", (CornerStoreDbContext db, DateTime? orderDate) =>
 {
+    // https://localhost:7065/api/orers/
+    // https://localhost:7065/api/orders/?orderDate=2024-01-10
+
     try
     {
-        if (orderDate > DateTime.Today || !orderDate.HasValue)
+        if (orderDate > DateTime.Today)
         {
             return Results.BadRequest("The provided date is in the future or isn't defined");
         }
 
         var orders = db.Orders
-            .Where(o => o.PaidOnDate.HasValue && o.PaidOnDate.Value.Date == orderDate)
+            .Where(o => orderDate.HasValue ? (o.PaidOnDate.Value.Date == orderDate) : true)
             .Include(o => o.Cashier)
             .Include(o => o.OrderProducts)
                 .ThenInclude(op => op.Product)
@@ -388,6 +391,21 @@ app.MapPut("/api/products/{id}", (CornerStoreDbContext db, int id, Product produ
 });
 
 // Delete Endpoints
+
+// Orders #3 - Delete an Order
+app.MapDelete("/api/orders/{id}", (CornerStoreDbContext db, int id) =>
+{
+    // https://localhost:7065/api/orders/19
+    
+    Order orderToDelete = db.Orders.SingleOrDefault(o => o.Id == id);
+    if (orderToDelete == null)
+    {
+        return Results.NotFound();
+    }
+    db.Orders.Remove(orderToDelete);
+    db.SaveChanges();
+    return Results.NoContent();
+});
 
 app.Run();
 
