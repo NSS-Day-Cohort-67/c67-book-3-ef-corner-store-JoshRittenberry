@@ -39,47 +39,54 @@ app.MapGet("/api/cashiers/{id}", (CornerStoreDbContext db, int id) =>
 {
     // https://localhost:7065/api/cashiers/2
 
-    var cashier = db.Cashiers
-        .Include(c => c.Orders)
-            .ThenInclude(o => o.OrderProducts)
-                .ThenInclude(op => op.Product)
-                    .ThenInclude(p => p.Category)
-        .SingleOrDefault(c => c.Id == id);
-
-    return Results.Ok(new CashierDTO
+    try
     {
-        Id = cashier.Id,
-        FirstName = cashier.FirstName,
-        LastName = cashier.LastName,
-        Orders = cashier.Orders.Select(o => new OrderDTO
+        var cashier = db.Cashiers
+            .Include(c => c.Orders)
+                .ThenInclude(o => o.OrderProducts)
+                    .ThenInclude(op => op.Product)
+                        .ThenInclude(p => p.Category)
+            .SingleOrDefault(c => c.Id == id);
+
+        return Results.Ok(new CashierDTO
         {
-            Id = o.Id,
-            CashierId = o.CashierId,
-            Cashier = null,
-            PaidOnDate = o.PaidOnDate,
-            OrderProducts = o.OrderProducts.Select(op => new OrderProductDTO
+            Id = cashier.Id,
+            FirstName = cashier.FirstName,
+            LastName = cashier.LastName,
+            Orders = cashier.Orders.Select(o => new OrderDTO
             {
-                Id = op.Id,
-                ProductId = op.ProductId,
-                Product = new ProductDTO
+                Id = o.Id,
+                CashierId = o.CashierId,
+                Cashier = null,
+                PaidOnDate = o.PaidOnDate,
+                OrderProducts = o.OrderProducts.Select(op => new OrderProductDTO
                 {
-                    Id = op.Product.Id,
-                    ProductName = op.Product.ProductName,
-                    Price = op.Product.Price,
-                    Brand = op.Product.Brand,
-                    CategoryId = op.Product.CategoryId,
-                    Category = new CategoryDTO
+                    Id = op.Id,
+                    ProductId = op.ProductId,
+                    Product = new ProductDTO
                     {
-                        Id = op.Product.Category.Id,
-                        CategoryName = op.Product.Category.CategoryName
-                    }
-                },
-                OrderId = op.OrderId,
-                Order = null,
-                Quantity = op.Quantity
-            }).ToList()
-        }).ToList(),
-    });
+                        Id = op.Product.Id,
+                        ProductName = op.Product.ProductName,
+                        Price = op.Product.Price,
+                        Brand = op.Product.Brand,
+                        CategoryId = op.Product.CategoryId,
+                        Category = new CategoryDTO
+                        {
+                            Id = op.Product.Category.Id,
+                            CategoryName = op.Product.Category.CategoryName
+                        }
+                    },
+                    OrderId = op.OrderId,
+                    Order = null,
+                    Quantity = op.Quantity
+                }).ToList()
+            }).ToList(),
+        });
+    }
+    catch
+    {
+        return Results.NotFound();
+    }
 });
 
 // Products #1 - Get all products with categories
@@ -122,6 +129,61 @@ app.MapGet("/api/products", (CornerStoreDbContext db, string? search) =>
             .ToList();
 
         return Results.Ok(products); // Return the list of products with 200 OK
+    }
+    catch
+    {
+        return Results.NotFound();
+    }
+});
+
+// Orders #1 = Get an Order with all Details
+app.MapGet("/api/orders/{id}", (CornerStoreDbContext db, int id) =>
+{
+    // https://localhost:7065/api/orders/1
+
+    try
+    {
+        var order = db.Orders
+            .Include(o => o.Cashier)
+            .Include(o => o.OrderProducts)
+                .ThenInclude(op => op.Product)
+                    .ThenInclude(p => p.Category)
+            .SingleOrDefault(o => o.Id == id);
+
+        return Results.Ok(new OrderDTO
+        {
+            Id = order.Id,
+            CashierId = order.CashierId,
+            Cashier = new CashierDTO
+            {
+                Id = order.Cashier.Id,
+                FirstName = order.Cashier.FirstName,
+                LastName = order.Cashier.LastName,
+                Orders = null
+            },
+            PaidOnDate = order.PaidOnDate,
+            OrderProducts = order.OrderProducts.Select(op => new OrderProductDTO
+            {
+                Id = op.Id,
+                ProductId = op.ProductId,
+                Product = new ProductDTO
+                {
+                    Id = op.Product.Id,
+                    ProductName = op.Product.ProductName,
+                    Price = op.Product.Price,
+                    Brand = op.Product.Brand,
+                    CategoryId = op.Product.CategoryId,
+                    Category = new CategoryDTO
+                    {
+                        Id = op.Product.Category.Id,
+                        CategoryName = op.Product.Category.CategoryName
+                    }
+                },
+                OrderId = op.OrderId,
+                Order = null,
+                Quantity = op.Quantity
+            }).ToList()
+        });
     }
     catch
     {
@@ -219,7 +281,7 @@ app.MapPut("/api/products/{id}", (CornerStoreDbContext db, int id, Product produ
     var productToUpdate = db.Products
         .Include(p => p.Category)
         .SingleOrDefault(p => p.Id == id);
-    
+
     if (productToUpdate == null)
     {
         return Results.NotFound();
