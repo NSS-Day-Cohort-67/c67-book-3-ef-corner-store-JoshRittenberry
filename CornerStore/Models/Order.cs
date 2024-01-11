@@ -8,6 +8,14 @@ public class Order
     [Required]
     public int CashierId { get; set; }
     public Cashier Cashier { get; set; }
-    public decimal Total { get; set; }
+    public decimal Total
+    {
+        get
+        {
+            return OrderProducts
+                .Sum(op => op.Product.Price);
+        }
+    }
     public DateTime? PaidOnDate { get; set; }
+    public List<OrderProduct> OrderProducts { get; set; }
 }
