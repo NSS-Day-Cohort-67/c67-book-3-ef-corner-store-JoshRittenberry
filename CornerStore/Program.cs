@@ -136,7 +136,7 @@ app.MapGet("/api/products", (CornerStoreDbContext db, string? search) =>
     }
 });
 
-// Orders #1 = Get an Order with all Details
+// Orders #1 - Get an Order with all Details
 app.MapGet("/api/orders/{id}", (CornerStoreDbContext db, int id) =>
 {
     // https://localhost:7065/api/orders/1
@@ -184,6 +184,65 @@ app.MapGet("/api/orders/{id}", (CornerStoreDbContext db, int id) =>
                 Quantity = op.Quantity
             }).ToList()
         });
+    }
+    catch
+    {
+        return Results.NotFound();
+    }
+});
+
+// Orders #2 - Get all Orders
+app.MapGet("/api/orders", (CornerStoreDbContext db, DateTime? orderDate) =>
+{
+    try
+    {
+        if (orderDate > DateTime.Today || !orderDate.HasValue)
+        {
+            return Results.BadRequest("The provided date is in the future or isn't defined");
+        }
+
+        var orders = db.Orders
+            .Where(o => o.PaidOnDate.HasValue && o.PaidOnDate.Value.Date == orderDate)
+            .Include(o => o.Cashier)
+            .Include(o => o.OrderProducts)
+                .ThenInclude(op => op.Product)
+                    .ThenInclude(p => p.Category)
+            .Select(o => new OrderDTO
+            {
+                Id = o.Id,
+                CashierId = o.CashierId,
+                Cashier = new CashierDTO
+                {
+                    Id = o.Cashier.Id,
+                    FirstName = o.Cashier.FirstName,
+                    LastName = o.Cashier.LastName,
+                    Orders = null
+                },
+                PaidOnDate = o.PaidOnDate,
+                OrderProducts = o.OrderProducts.Select(op => new OrderProductDTO
+                {
+                    Id = op.Id,
+                    ProductId = op.ProductId,
+                    Product = new ProductDTO
+                    {
+                        Id = op.Product.Id,
+                        ProductName = op.Product.ProductName,
+                        Price = op.Product.Price,
+                        Brand = op.Product.Brand,
+                        CategoryId = op.Product.CategoryId,
+                        Category = new CategoryDTO
+                        {
+                            Id = op.Product.Category.Id,
+                            CategoryName = op.Product.Category.CategoryName
+                        }
+                    },
+                    OrderId = op.OrderId,
+                    Order = null,
+                    Quantity = op.Quantity
+                }).ToList()
+            }).ToList();
+
+        return Results.Ok(orders);
     }
     catch
     {
