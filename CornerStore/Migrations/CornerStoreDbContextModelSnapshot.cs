@@ -808,7 +808,7 @@ namespace CornerStore.Migrations
             modelBuilder.Entity("CornerStore.Models.Order", b =>
                 {
                     b.HasOne("CornerStore.Models.Cashier", "Cashier")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("CashierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -844,6 +844,11 @@ namespace CornerStore.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("CornerStore.Models.Cashier", b =>
+                {
+                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("CornerStore.Models.Order", b =>

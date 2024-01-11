@@ -32,7 +32,72 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-//endpoints go here
+//Get Endpoints
+
+// Cashiers #2 - Get a Cashier
+app.MapGet("/api/cashiers/{id}", (CornerStoreDbContext db, int id) =>
+{
+    var cashier = db.Cashiers
+        .Include(c => c.Orders)
+            .ThenInclude(o => o.OrderProducts)
+                .ThenInclude(op => op.Product)
+                    .ThenInclude(p => p.Category)
+        .SingleOrDefault(c => c.Id == id);
+
+    return Results.Ok(new CashierDTO
+    {
+        Id = cashier.Id,
+        FirstName = cashier.FirstName,
+        LastName = cashier.LastName,
+        Orders = cashier.Orders.Select(o => new OrderDTO
+        {
+            Id = o.Id,
+            CashierId = o.CashierId,
+            Cashier = null,
+            PaidOnDate = o.PaidOnDate,
+            OrderProducts = o.OrderProducts.Select(op => new OrderProductDTO
+            {
+                Id = op.Id,
+                ProductId = op.ProductId,
+                Product = new ProductDTO
+                {
+                    Id = op.Product.Id,
+                    ProductName = op.Product.ProductName,
+                    Price = op.Product.Price,
+                    Brand = op.Product.Brand,
+                    CategoryId = op.Product.CategoryId,
+                    Category = new CategoryDTO
+                    {
+                        Id = op.Product.Category.Id,
+                        CategoryName = op.Product.Category.CategoryName
+                    }
+                },
+                OrderId = op.OrderId,
+                Order = null,
+                Quantity = op.Quantity
+            }).ToList()
+        }).ToList(),
+    });
+});
+
+// Post Endpoints
+
+// Cashiers #1 - Add a Cashier
+app.MapPost("/api/cashiers", (CornerStoreDbContext db, Cashier cashier) =>
+{
+    try
+    {
+        
+    }
+    catch
+    {
+
+    }
+});
+
+// Put Endpoints
+
+// Delete Endpoints
 
 app.Run();
 
