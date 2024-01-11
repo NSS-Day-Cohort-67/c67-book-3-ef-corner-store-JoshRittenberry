@@ -87,11 +87,22 @@ app.MapPost("/api/cashiers", (CornerStoreDbContext db, Cashier cashier) =>
 {
     try
     {
-        
-    }
-    catch
-    {
+        db.Cashiers.Add(cashier);
+        db.SaveChanges();
 
+        var newCashier = db.Cashiers
+            .FirstOrDefault(c => c.Id == cashier.Id);
+
+        if (newCashier == null)
+        {
+            return Results.NotFound();
+        }
+
+        return Results.Ok(cashier.Id);
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid data submitted");
     }
 });
 
