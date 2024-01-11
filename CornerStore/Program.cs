@@ -208,6 +208,64 @@ app.MapPost("/api/products", (CornerStoreDbContext db, Product product) =>
 
 // Put Endpoints
 
+// Products #3 - Update a Product
+app.MapPut("/api/products/{id}", (CornerStoreDbContext db, int id, Product product) =>
+{
+    // https://localhost:7065/api/products/1
+    // {
+    //     "productName": "Sprite"
+    // }
+
+    var productToUpdate = db.Products
+        .Include(p => p.Category)
+        .SingleOrDefault(p => p.Id == id);
+    
+    if (productToUpdate == null)
+    {
+        return Results.NotFound();
+    }
+
+    bool isUpdated = false;
+
+    // Update ProductName
+    if (!string.IsNullOrWhiteSpace(product.ProductName) && product.ProductName != productToUpdate.ProductName)
+    {
+        productToUpdate.ProductName = product.ProductName.Trim();
+        isUpdated = true;
+    }
+
+    // Update Price
+    if (product.Price != 0.0m && product.Price != productToUpdate.Price)
+    {
+        productToUpdate.Price = product.Price;
+        isUpdated = true;
+    }
+
+    // Update Brand
+    if (!string.IsNullOrWhiteSpace(product.Brand) && product.Brand != productToUpdate.Brand)
+    {
+        productToUpdate.Brand = product.Brand.Trim();
+        isUpdated = true;
+    }
+
+    // Update CategoryId
+    if (product.CategoryId != 0 && product.CategoryId != productToUpdate.CategoryId)
+    {
+        productToUpdate.CategoryId = product.CategoryId;
+        isUpdated = true;
+    }
+
+    if (isUpdated)
+    {
+        db.SaveChanges();
+        return Results.Ok(productToUpdate);
+    }
+    else
+    {
+        return Results.NoContent();
+    }
+});
+
 // Delete Endpoints
 
 app.Run();
